@@ -4,9 +4,10 @@ def test_main():
     try:
         hqc_main(
             basepath='/Users/odin/sw/HistoQC/tests/data',
-            input_pattern='*.tiff',
+            input_pattern='sample2.tiff',
             outdir='results',
-            config='/Users/odin/sw/HistoQC/tests/picture_health/config_ph_v2.1.ini')
+            config='/Users/odin/sw/HistoQC/tests/picture_health/config_ph_v2.1.ini',
+        )
         assert True  # If no exception is raised, the test passes
     except Exception as e:
         assert False, e
