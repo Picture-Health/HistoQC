@@ -25,3 +25,4 @@ htmlcov/
 histoqc/_version.py
 environment.yml
 
+*.tiff
