@@ -80,7 +80,7 @@ def removeFatlikeTissue(s, params):
     img_small = img_reduced & np.invert(s["img_mask_use"])
     img_small = ~morphology.remove_small_holes(~img_small, area_threshold=9)
 
-    mask_dilate = morphology.dilation(img_small, selem=np.ones((kernel_size, kernel_size)))
+    mask_dilate = morphology.dilation(img_small, footprint=np.ones((kernel_size, kernel_size)))
     mask_dilate_removed = remove_large_objects(mask_dilate, max_keep_size)
 
     mask_fat = mask_dilate & ~mask_dilate_removed

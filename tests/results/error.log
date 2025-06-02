@@ -1,1 +1,2 @@
-2025-05-30 18:23:28,057 - WARNING - /Users/odin/sw/HistoQC/tests/data/standard.tiff already seems to be processed (output directory exists), skipping. To avoid this behavior use --force
+2025-06-02 14:34:56,169 - WARNING - standard.tiff - Mask file '/Users/dlevyph/Documents/pathology/HistoQC/tests/.histoqc_pkg_data_tmppqbnmhn6/./pen/1k_version/pen_black_mask.png' is not a binary image. Automatically converting to binary...
+2025-06-02 14:34:59,057 - ERROR - tiffs/standard.tiff - Error analyzing file (skipping): 	 <class 'TypeError'> Inappropriate argument type. dilation() got an unexpected keyword argument 'selem'
