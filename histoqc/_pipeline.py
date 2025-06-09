@@ -9,94 +9,93 @@ import multiprocessing
 import os
 import platform
 import shutil
+import sys
 import threading
 import warnings
 from contextlib import ExitStack
 from contextlib import contextmanager
 from contextlib import nullcontext
 from importlib import import_module
-from logging.config import dictConfig
-from logging.handlers import QueueHandler
-
+#from logging.config import dictConfig
 
 # --- logging helpers -------------------------------------------------
 
 DEFAULT_LOG_FN = "error.log"
 
 
-def setup_logging(*, capture_warnings, filter_warnings):
-    """configure histoqc's logging instance
-
-    Parameters
-    ----------
-    capture_warnings: `bool`
-        flag if warnings should be captured by the logging system
-    filter_warnings: `str`
-        action for warnings.filterwarnings
-    """
-    dictConfig({
-        'version': 1,
-        'formatters': {
-            'default': {
-                'class': 'logging.Formatter',
-                'format': '%(asctime)s - %(levelname)s - %(message)s',
-            }
-        },
-        'handlers': {
-            'console': {
-                'class': 'logging.StreamHandler',
-                'level': 'INFO',
-                'formatter': 'default',
-            },
-            'logfile': {
-                'class': 'logging.FileHandler',
-                'level': 'WARNING',
-                'filename': DEFAULT_LOG_FN,
-                'mode': 'w',  # we initially start overwriting existing logs
-                'formatter': 'default',
-            },
-        },
-        'root': {
-            'level': 'INFO',
-            'handlers': ['console', 'logfile']
-        }
-    })
-
-    # configure warnings too...
-    warnings.filterwarnings(filter_warnings)
-    logging.captureWarnings(capture_warnings)
-
-
-def move_logging_file_handler(logger, destination, debug=False):
-    """point the logging file handlers to the new destination
-
-    Parameters
-    ----------
-    logger :
-        the Logger instance for which the default file handler should be moved
-    destination :
-        destination directory for the new file handler
-    """
-    for handler in reversed(logger.handlers):
-        if not isinstance(handler, logging.FileHandler):
-            continue
-        if handler.baseFilename != os.path.join(os.getcwd(), DEFAULT_LOG_FN):
-            continue
-
-        if not destination.endswith(handler.baseFilename):
-            destination = os.path.join(destination, os.path.relpath(handler.baseFilename, os.getcwd()))
-        logger.info(f'moving fileHandler {handler.baseFilename!r} to {destination!r}')
-
-        # remove handler
-        logger.removeHandler(handler)
-        handler.close()
-        # copy error log to destination
-        new_filename = shutil.move(handler.baseFilename, destination)
-
-        new_handler = logging.FileHandler(new_filename, mode='a')
-        new_handler.setLevel(logging.DEBUG if debug else handler.level)
-        new_handler.setFormatter(handler.formatter)
-        logger.addHandler(new_handler)
+# def setup_logging(*, capture_warnings, filter_warnings):
+#     """configure histoqc's logging instance
+#
+#     Parameters
+#     ----------
+#     capture_warnings: `bool`
+#         flag if warnings should be captured by the logging system
+#     filter_warnings: `str`
+#         action for warnings.filterwarnings
+#     """
+#     dictConfig({
+#         'version': 1,
+#         'formatters': {
+#             'default': {
+#                 'class': 'logging.Formatter',
+#                 'format': '%(asctime)s - %(levelname)s - %(message)s',
+#             }
+#         },
+#         'handlers': {
+#             'console': {
+#                 'class': 'logging.StreamHandler',
+#                 'level': 'INFO',
+#                 'formatter': 'default',
+#             },
+#             'logfile': {
+#                 'class': 'logging.FileHandler',
+#                 'level': 'WARNING',
+#                 'filename': DEFAULT_LOG_FN,
+#                 'mode': 'w',  # we initially start overwriting existing logs
+#                 'formatter': 'default',
+#             },
+#         },
+#         'root': {
+#             'level': 'INFO',
+#             'handlers': ['console', 'logfile']
+#         }
+#     })
+#
+#     # configure warnings too...
+#     warnings.filterwarnings(filter_warnings)
+#     logging.captureWarnings(capture_warnings)
+#
+#
+# def move_logging_file_handler(logger, destination, debug=False):
+#     """point the logging file handlers to the new destination
+#
+#     Parameters
+#     ----------
+#     logger :
+#         the Logger instance for which the default file handler should be moved
+#     destination :
+#         destination directory for the new file handler
+#     """
+#     for handler in reversed(logger.handlers):
+#         if not isinstance(handler, logging.FileHandler):
+#             continue
+#         if handler.baseFilename != os.path.join(os.getcwd(), DEFAULT_LOG_FN):
+#             continue
+#
+#         if not destination.endswith(handler.baseFilename):
+#             destination = os.path.join(destination, os.path.relpath(handler.baseFilename, os.getcwd()))
+#         logger.info(f'moving fileHandler {handler.baseFilename!r} to {destination!r}')
+#
+#         # remove handler
+#         logger.removeHandler(handler)
+#         handler.close()
+#         # copy error log to destination
+#         new_filename = shutil.move(handler.baseFilename, destination)
+#
+#         new_handler = logging.FileHandler(new_filename, mode='a')
+#         new_handler.setLevel(logging.DEBUG if debug else handler.level)
+#         new_handler.setFormatter(handler.formatter)
+#         logger.addHandler(new_handler)
 
 
 class MultiProcessingLogManager:
@@ -125,19 +124,34 @@ class MultiProcessingLogManager:
 
     @property
     def logger(self):
-        """returns the logger instance"""
-        if self.is_main_process:
-            return logging.getLogger(self._logger_name)
-        else:
-            root = logging.getLogger()
-            if not root.hasHandlers():
-                qh = QueueHandler(self._log_queue)
-                root.setLevel(logging.INFO)
-                root.addHandler(qh)
-                # note: this should be revisited and set by the main process
-                warnings.filterwarnings('ignore')
-                logging.captureWarnings(True)
-            return root
+        log = logging.getLogger(self._logger_name)
+        log.setLevel(logging.DEBUG)
+        if not log.handlers:
+            formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s",
+                                          datefmt="%Y-%m-%d %I:%M:%S %p")
+            handler = logging.StreamHandler(sys.stdout)
+            handler.setFormatter(formatter)
+            log.addHandler(handler)
+
+            file_handler = logging.FileHandler(filename=DEFAULT_LOG_FN, mode='w')
+            file_handler.setLevel(logging.WARNING)
+            file_handler.setFormatter(formatter)
+            log.addHandler(file_handler)
+
+        return log
+
+        # if self.is_main_process:
+        #     return logging.getLogger(self._logger_name)
+        # else:
+        #     root = logging.getLogger()
+        #     if not root.hasHandlers():
+        #         qh = QueueHandler(self._log_queue)
+        #         root.setLevel(logging.INFO)
+        #         root.addHandler(qh)
+        #         # note: this should be revisited and set by the main process
+        #         warnings.filterwarnings('ignore')
+        #         logging.captureWarnings(True)
+        #     return root
 
     @contextmanager
     def logger_thread(self):
