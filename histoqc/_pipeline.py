@@ -23,47 +23,47 @@ from importlib import import_module
 DEFAULT_LOG_FN = "error.log"
 
 
-# def setup_logging(*, capture_warnings, filter_warnings):
-#     """configure histoqc's logging instance
-#
-#     Parameters
-#     ----------
-#     capture_warnings: `bool`
-#         flag if warnings should be captured by the logging system
-#     filter_warnings: `str`
-#         action for warnings.filterwarnings
-#     """
-#     dictConfig({
-#         'version': 1,
-#         'formatters': {
-#             'default': {
-#                 'class': 'logging.Formatter',
-#                 'format': '%(asctime)s - %(levelname)s - %(message)s',
-#             }
-#         },
-#         'handlers': {
-#             'console': {
-#                 'class': 'logging.StreamHandler',
-#                 'level': 'INFO',
-#                 'formatter': 'default',
-#             },
-#             'logfile': {
-#                 'class': 'logging.FileHandler',
-#                 'level': 'WARNING',
-#                 'filename': DEFAULT_LOG_FN,
-#                 'mode': 'w',  # we initially start overwriting existing logs
-#                 'formatter': 'default',
-#             },
-#         },
-#         'root': {
-#             'level': 'INFO',
-#             'handlers': ['console', 'logfile']
-#         }
-#     })
-#
-#     # configure warnings too...
-#     warnings.filterwarnings(filter_warnings)
-#     logging.captureWarnings(capture_warnings)
+def setup_logging(*, capture_warnings, filter_warnings):
+    """configure histoqc's logging instance
+
+    Parameters
+    ----------
+    capture_warnings: `bool`
+        flag if warnings should be captured by the logging system
+    filter_warnings: `str`
+        action for warnings.filterwarnings
+    """
+    # dictConfig({
+    #     'version': 1,
+    #     'formatters': {
+    #         'default': {
+    #             'class': 'logging.Formatter',
+    #             'format': '%(asctime)s - %(levelname)s - %(message)s',
+    #         }
+    #     },
+    #     'handlers': {
+    #         'console': {
+    #             'class': 'logging.StreamHandler',
+    #             'level': 'INFO',
+    #             'formatter': 'default',
+    #         },
+    #         'logfile': {
+    #             'class': 'logging.FileHandler',
+    #             'level': 'WARNING',
+    #             'filename': DEFAULT_LOG_FN,
+    #             'mode': 'w',  # we initially start overwriting existing logs
+    #             'formatter': 'default',
+    #         },
+    #     },
+    #     'root': {
+    #         'level': 'INFO',
+    #         'handlers': ['console', 'logfile']
+    #     }
+    # })
+
+    # configure warnings too...
+    warnings.filterwarnings(filter_warnings)
+    logging.captureWarnings(capture_warnings)
 #
 #
 # def move_logging_file_handler(logger, destination, debug=False):

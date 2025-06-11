@@ -14,7 +14,7 @@ from histoqc._pipeline import MultiProcessingLogManager
 from histoqc._pipeline import load_pipeline
 from histoqc._pipeline import log_pipeline
 #from histoqc._pipeline import move_logging_file_handler
-#from histoqc._pipeline import setup_logging
+from histoqc._pipeline import setup_logging
 from histoqc._pipeline import setup_plotting_backend
 from histoqc._worker import worker
 from histoqc._worker import worker_setup
@@ -27,8 +27,6 @@ from histoqc.data import managed_pkg_data
 @managed_pkg_data
 def main(argv=None):
     """main entry point for histoqc pipelines"""
-    print('main routine in histoqc')
-    print(f'argv: {argv}')
     if argv is None:
         argv = sys.argv[1:]
 
@@ -72,12 +70,12 @@ def main(argv=None):
 
 
     args = parser.parse_args(argv)
-    print(f'printing args: {args}')
+
 
     # --- multiprocessing and logging setup -----------------------------------
 
 
-    #setup_logging(capture_warnings=True, filter_warnings='ignore')
+    setup_logging(capture_warnings=True, filter_warnings='ignore')
 
     mpm = multiprocessing.Manager()
     lm = MultiProcessingLogManager('histoqc', manager=mpm)
