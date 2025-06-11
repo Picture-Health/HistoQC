@@ -27,6 +27,8 @@ from histoqc.data import managed_pkg_data
 @managed_pkg_data
 def main(argv=None):
     """main entry point for histoqc pipelines"""
+    print('main routine in histoqc')
+    print(f'argv: {argv}')
     if argv is None:
         argv = sys.argv[1:]
 
@@ -70,6 +72,7 @@ def main(argv=None):
 
 
     args = parser.parse_args(argv)
+    print(f'printing args: {args}')
 
     # --- multiprocessing and logging setup -----------------------------------
 
