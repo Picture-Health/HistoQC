@@ -1,0 +1,23 @@
+name: JIRA Status Sync
+
+# Thin caller — all logic lives in picture-shared-workflows/jira-sync.yml.
+# Handles: review_requested → QA, changes_requested → In Progress (+ reassign).
+# Branch created → In Progress and PR merged → Done are handled by JIRA
+# Automation rules (TRD project settings → Automation), not Actions.
+
+on:
+  pull_request:
+    types: [review_requested]
+  pull_request_review:
+    types: [submitted]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  sync:
+    uses: Picture-Health/picture-shared-workflows/.github/workflows/jira-sync.yml@main
+    secrets:
+      JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+      JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
