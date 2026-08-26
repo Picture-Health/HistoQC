@@ -22,7 +22,10 @@ def getBasicStats(s, params):
 
 def finalComputations(s, params):
     mask = s["img_mask_use"]
-    s.addToPrintList("pixels_to_use", str(len(mask.nonzero()[0])))
+    # absolute count of usable pixels at the working resolution (image_work_size)
+    s.addToPrintList("pixels_to_use", printMaskHelper("absolute", mask, mask))
+    # usable pixels as a fraction (0-1) of the total working image, resolution/size independent
+    s.addToPrintList("percent_pixels_to_use", printMaskHelper("relative2image", mask, mask))
 
 
 def finalProcessingSpur(s, params):

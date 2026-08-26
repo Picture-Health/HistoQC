@@ -47,7 +47,8 @@ var DEFAULT_PARAC_ATTRIBUTES = [
     "chan1_brightness_YUV",
     "chan2_brightness_YUV",
     "chan3_brightness_YUV",
-    "pixels_to_use"
+    "pixels_to_use",
+    "percent_pixels_to_use"
 ];
 
 /****************** IMAGE VIEW ****************/
