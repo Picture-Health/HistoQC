@@ -19,5 +19,5 @@ jobs:
   sync:
     uses: Picture-Health/picture-shared-workflows/.github/workflows/jira-sync.yml@main
     secrets:
-      JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
-      JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+      JIRA_WEBHOOK_QA_URL: ${{ secrets.JIRA_WEBHOOK_QA_URL }}
+      JIRA_WEBHOOK_CHANGES_URL: ${{ secrets.JIRA_WEBHOOK_CHANGES_URL }}
