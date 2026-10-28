@@ -4,7 +4,7 @@ Coordinates are saved in the half-open 4-tuple convention of (left, top, right, 
 are open.
 """
 import os
-import openslide
+from histoqc.import_wrapper.openslide import openslide
 import json
 from histoqc.BaseImage import BaseImage
 from typing import Callable, Dict, Any, List, Tuple, Union

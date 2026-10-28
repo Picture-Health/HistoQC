@@ -16,14 +16,14 @@ RUN python -m venv venv \
     && python -m pip install --no-cache-dir setuptools wheel \
     && python -m pip install --no-cache-dir -r requirements.txt \
     && python -m pip install --no-cache-dir . \
-    # We force this so there is no error even if the dll does not exist.
-    && rm -f libopenslide-0.dll
+    # bin/ holds upstream's Windows OpenSlide DLLs (LGPL), unused since slides
+    # are read with pathology-slide-reader; keep them out of the image.
+    && rm -rf bin libopenslide-0.dll
 
 FROM python:3.8-slim
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        libopenslide0 \
         libtk8.6 \
         procps \
     && rm -rf /var/lib/apt/lists/*
