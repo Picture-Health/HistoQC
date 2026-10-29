@@ -9,6 +9,8 @@ FROM python:3.8 AS builder
 ARG DEBIAN_FRONTEND=noninteractive
 WORKDIR /opt/HistoQC
 COPY . .
+# Doesn't build as-is (python:3.8 vs requirements; private pathology-slide-reader
+# needs GitHub credentials): see PICTUREHEALTH_FORK.md, "Known gap".
 # Create virtual environment for this project. This makes it easier to copy the Python
 # installation into the second stage of the build.
 ENV PATH="/opt/HistoQC/venv/bin:$PATH"
