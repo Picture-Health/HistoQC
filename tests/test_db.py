@@ -311,6 +311,14 @@ def test_create_engine_bad_url_raises():
         Database("not-a-valid-url://x")
 
 
+def test_create_engine_error_does_not_leak_url_credentials():
+    with pytest.raises(PersistenceError) as excinfo:
+        Database("not-a-valid-url://user:s3cret-pw@db-host/raven")
+    err = excinfo.value
+    assert "s3cret-pw" not in str(err)
+    assert "s3cret-pw" not in repr(err.details)
+
+
 def test_database_from_env(tmp_path, monkeypatch):
     monkeypatch.setenv("RAVEN_DATABASE_URL", f"sqlite:///{tmp_path / 'e.db'}")
     database = Database.from_env()
@@ -350,6 +358,22 @@ def test_transaction_error_is_wrapped_and_rolled_back(db, make_mask):
     with db.session() as s:
         assert s.query(PathQc).count() == 0
         assert s.query(PathMask).count() == 0
+
+
+def test_transaction_error_does_not_leak_row_values(db, make_mask):
+    # Callers log these errors (e.g. ClearML), so neither the error nor the
+    # SQLAlchemy error chained to it may carry identifying row values.
+    store = SqlAlchemyHistoQCStore(db)
+    result = _result(make_mask(), slide_filename="PHI-SLIDE-7731.svs")
+    with pytest.raises(PersistenceError) as excinfo:
+        store.record_qc(
+            result, _identity(clinical_id="PHI-CLINICAL-7731"), qa_code=None
+        )
+    err = excinfo.value
+    assert err.details == {"error_type": "IntegrityError"}
+    for text in (str(err), repr(err.details), str(err.__cause__)):
+        assert "PHI-CLINICAL-7731" not in text
+        assert "PHI-SLIDE-7731" not in text
 
 
 def test_probe_missing_mask_leaves_nulls(db):

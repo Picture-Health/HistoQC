@@ -24,18 +24,25 @@ logger = logging.getLogger(__name__)
 
 
 def create_engine_from_config(config: DatabaseConfig) -> Engine:
-    """Build a SQLAlchemy :class:`Engine` from a :class:`DatabaseConfig`."""
+    """Build a SQLAlchemy :class:`Engine` from a :class:`DatabaseConfig`.
+
+    ``hide_parameters`` keeps bound values (clinical IDs, slide filenames, the
+    QC metrics JSON with the slide's ImageDescription) out of SQLAlchemy's
+    error messages, so a failed write can't leak them into logs.
+    """
     try:
         return create_engine(
             config.url,
             echo=config.echo,
             pool_pre_ping=config.pool_pre_ping,
+            hide_parameters=True,
             future=True,
         )
     except Exception as exc:  # e.g. an unparseable/unsupported URL
+        # Only the type: the message can echo the URL and its credentials.
         raise PersistenceError(
             "Failed to create database engine",
-            details={"error": str(exc)},
+            details={"error_type": type(exc).__name__},
         ) from exc
 
 
@@ -82,9 +89,11 @@ class Database:
             session.rollback()
             if isinstance(exc, PersistenceError):
                 raise
+            # Only the type: the message can carry row values (e.g. from the
+            # database driver), which may identify a patient.
             raise PersistenceError(
                 "Database transaction failed and was rolled back",
-                details={"error": str(exc)},
+                details={"error_type": type(exc).__name__},
             ) from exc
         finally:
             session.close()
