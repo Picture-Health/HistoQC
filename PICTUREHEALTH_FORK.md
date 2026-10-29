@@ -45,3 +45,39 @@ handle these:
 - **Publish workflow.** `docker-image.yml` pushes to upstream's public Docker
   Hub repo (`histotools/HistoQC`) on every push to `master`. Disable it or
   point it at our registry (passing the secret above) before relying on it.
+
+## Known gap: DB persistence layer (`histoqc/db/`), deferred until the Raven data-record API is final
+
+Found in pre-push review (2026-10-29). Nothing in the HistoQC pipeline calls
+`record_qc` yet, so none of this affects production runs today. Revisit when
+the Raven database API for `path_masks` / `path_qc` records is finalized.
+
+- **Reruns overwrite records in place.** `qc_key = uuid5(wsi_key, qc_task,
+  task_version)` and `mask_key = uuid5(wsi_key, mask_type, artifact_type,
+  model_version)` (from the `new_tables` schema sheet) leave out
+  `config_hash` and `pipeline_version`, and `task_version` defaults to `None`.
+  So a rerun with a different config replaces `status`, `qc_metrics`,
+  `config_hash`, `pipeline_version`, `container_image` and `clearml_task_id`
+  on the existing row, with no history kept.
+  - A row with `reviewer_user_id` / `signature_ref` set keeps its signature
+    while the data under it changes, so the record no longer matches what was
+    signed (design-control traceability).
+  - The update path never sets `is_latest` back to True: after
+    v1 → v2 → rerun v1, the v1 row has fresh data but `is_latest=False`, and
+    v2 stays "latest".
+  - To decide with the schema owner: one row per run (keys include the
+    config/pipeline version, or insert-and-demote) vs. idempotent overwrite.
+    `tests/test_db.py::test_keys_are_deterministic_and_idempotent` asserts
+    the current overwrite behaviour.
+- **No tenant check on update.** `_upsert_mask` / `_upsert_qc` find the
+  existing row by key alone and then overwrite `organization_id`, `wsi_id`,
+  `dataset_id` and `clinical_id` with the caller's identity. A wrong or
+  reused `wsi_key` would silently move another organization's row. Fix
+  regardless of the key decision: refuse the update when `organization_id` or
+  `wsi_id` differs, and leave the identity columns out of the update set.
+- **Open design questions:** `_set_qc_canonical` clears `is_canonical`
+  across all `qc_task` values for a WSI, while `is_latest` is per task;
+  `mask_uri` stores a local filesystem path.
+
+HistoBlur's `histoblur/db/` was written the same way (TRD-3228); check it
+for the same issues.
