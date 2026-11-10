@@ -12,6 +12,9 @@ version_scheme = "post-release"
 
 [tool.pytest.ini_options]
 addopts = "-v"
+markers = [
+  "integration: needs the golden fixtures (GOLDEN_FIXTURES_DIR or S3); skips without them",
+]
 
 [tool.coverage.run]
 source = ["histoqc"]
