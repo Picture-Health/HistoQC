@@ -108,6 +108,19 @@ pinned in `requirements-image.lock` as resolved on the golden run date. That
 venv also had openslide-python 1.3.1 installed, but HistoQC no longer imports
 it, so the image leaves it out.
 
+## Known issues (open, not fixed here)
+
+Changing detection would change the goldens, so these are recorded, not fixed.
+Both are HistoQC's behaviour on the PH production config.
+
+- `real_chain_ccf_010`: `pen_markings` flags a dense eosinophilic (bright pink)
+  tissue region as pen, so that tissue is excluded from `mask_use`
+  (TRD-3518 issue 5, false positive).
+- `real_chain_ccf_054` and `real_chain_ccf_008`: pen-marker circles over the
+  tissue. The dark ink cores are caught by `pen_markings` and most of the light
+  ink halo by `coverslip_edge`, but thin light ink crossing the tissue stays
+  inside `mask_use` (TRD-3518 issue 6, false negative).
+
 ## When the Raven DB layer lands
 
 The golden covers the file output only. Once the `path_masks` / `path_qc`
