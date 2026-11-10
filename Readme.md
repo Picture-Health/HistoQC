@@ -37,6 +37,27 @@ The most basic docker image can be created with the included (7-line) Dockerfile
 
 
 # Installation
+## Picture Health image
+
+This fork's `Dockerfile` builds the image the PH pipeline runs (Python 3.10.20,
+exactly the packages in `requirements-image.lock`, hash-checked). It installs
+the private `Picture-Health/pathology-slide-reader`, so the build needs a
+GitHub token with read access to that repo, passed as a BuildKit secret (it
+never reaches an image layer; do not pass it as a build arg):
+
+```bash
+GITHUB_TOKEN=$(gh auth token) docker build --platform linux/amd64 \
+    --secret id=github_token,env=GITHUB_TOKEN -t histoqc .
+docker run --rm --platform linux/amd64 -v "$PWD":/data histoqc \
+    -c /opt/HistoQC/config/config_ph_v2.1.ini -o out -n 1 slide_std.tiff
+```
+
+Any token with read access works (`GITHUB_TOKEN` from a CI job with access to
+the repo, or a fine-grained PAT). To change a dependency, edit
+`requirements-image.in` and regenerate the lock with the command at the top of
+`requirements-image.lock`, then re-check the goldens
+(`tests/golden/real_chain_v1/README.md`).
+
 ## Using docker
 Docker is now the recommended method for installing and running HistoQC. Containerized runtimes like docker are more portable and avoid issues with python environment management, and ensure reproducible application behavior. Docker is available for Windows, MacOS, and Linux.
 

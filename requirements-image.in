@@ -1,0 +1,27 @@
+# Runtime dependencies of the HistoQC image, pinned to the environment the
+# TRD-3518 golden chains were made in (fixture manifest.json, HistoQC cd66a60).
+# Regenerate requirements-image.lock with the command at its top.
+#
+# Recorded in the golden manifests:
+numpy==2.2.6
+scikit-image==0.25.2
+scipy==1.15.3
+opencv-python-headless==5.0.0.93
+Pillow==12.3.0
+tifffile==2025.5.10
+imagecodecs==2025.3.30
+# Read from the golden *_hist.png (PNG Software chunk):
+matplotlib==3.10.9
+# Not recorded in the manifests; the rest of requirements.txt, resolved as of
+# the golden run date (--exclude-newer):
+scikit-learn
+dill
+lazy-property
+importlib-resources
+typing-extensions
+shapely~=2.0.1
+geojson>=3.1.0
+# pathology-slide-reader is a private git dependency, so it can't be
+# hash-locked here; the Dockerfile installs it --no-deps at the commit pinned
+# in requirements.txt (its dependencies numpy, tifffile, imagecodecs and
+# Pillow are pinned above).
