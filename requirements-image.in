@@ -25,3 +25,9 @@ geojson>=3.1.0
 # hash-locked here; the Dockerfile installs it --no-deps at the commit pinned
 # in requirements.txt (its dependencies numpy, tifffile, imagecodecs and
 # Pillow are pinned above).
+#
+# Its build backend, so pip can build the reader from source with
+# --no-build-isolation instead of fetching an unpinned, unhashed poetry-core
+# from PyPI in the step that holds the GitHub token (resolved as of the golden
+# run date like the rest; it only builds the reader, nothing imports it):
+poetry-core==2.5.0

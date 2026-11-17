@@ -1,0 +1,9 @@
+# Only the files the Dockerfile COPYs are needed; keep everything else (git
+# history, local fixtures, run outputs, caches, secrets) out of the context.
+*
+!requirements-image.lock
+!requirements.txt
+!histoqc
+!tests/picture_health/config_ph_v2.1.ini
+**/__pycache__
+**/*.py[cod]
