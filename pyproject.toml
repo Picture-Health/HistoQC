@@ -11,9 +11,11 @@ write_to = "histoqc/_version.py"
 version_scheme = "post-release"
 
 [tool.pytest.ini_options]
-addopts = "-v"
+# The golden test is opt-in: `pytest -m integration tests/golden` (a later -m
+# replaces this one) with GOLDEN_FIXTURES_DIR or GOLDEN_FIXTURES_S3=1 set.
+addopts = "-v -m 'not integration'"
 markers = [
-  "integration: needs the golden fixtures (GOLDEN_FIXTURES_DIR or S3); skips without them",
+  "integration: opt-in golden test; skips with no fixture source, fails on any fixture error",
 ]
 
 [tool.coverage.run]
