@@ -23,7 +23,9 @@ compared.
 from __future__ import annotations
 
 import os
+import shutil
 import sys
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -83,10 +85,26 @@ def _download(chain: str, root: Path) -> None:
         s3.download_file(bucket, key, str(path))
 
 
+# RQ: When the `python -m histoqc -c config_ph_v2.1.ini -n 1 -s 1` command
+#     is run on a chain's standardized slide, given the chain's input and
+#     golden fixtures, then the system shall write PNGs byte-identical to the
+#     golden's and a results.tsv matching it exactly (apart from the warnings
+#     column and the run-specific # lines).
 @pytest.mark.parametrize("chain", sorted(CHAINS))
-def test_stage2_reproduces_the_golden(chain, tmp_path):
+def test_stage2_reproduces_the_golden(chain):
     slide = CHAINS[chain]
-    fixtures = _fixtures(chain, tmp_path)
-    run_dir = tmp_path / "run"
-    run_histoqc(fixtures / "input" / slide, run_dir)
-    assert compare(run_dir, fixtures / "golden", slide) == []
+    # Not pytest's tmp_path: pytest keeps the last three runs' directories,
+    # and an S3 run downloads whole slides. This folder is deleted after
+    # each chain, pass or fail.
+    tmp = Path(tempfile.mkdtemp(prefix=f"histoqc-golden-{chain}-"))
+    try:
+        # S1: Fetch the chain's input slide and golden (fixture errors fail).
+        fixtures = _fixtures(chain, tmp)
+        # S2: Run HistoQC on the slide exactly as the golden was made.
+        run_dir = tmp / "run"
+        run_histoqc(fixtures / "input" / slide, run_dir)
+        # V1: Verify that the output matched the golden under compare.py's
+        # rule (no differences reported).
+        assert compare(run_dir, fixtures / "golden", slide) == []
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)

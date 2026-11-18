@@ -71,6 +71,13 @@ boto3 not installed) fails the test, so a green run always compared all five
 slides. `tests/golden/test_fixture_sources.py` (runs by default, no slides)
 checks that rule.
 
+Where to run it: the inputs are real (de-identified) clinical slides, and
+slide data stays in AWS. Run it on an AWS-hosted linux/amd64 machine (such as
+an EC2 dev box), in the image or a venv built from the lock, not on a laptop.
+Each chain's downloads and HistoQC output go into a temp folder that is
+deleted after the chain, pass or fail (not pytest's `tmp_path`, which keeps
+the last three runs).
+
 ## Compare rule
 
 From each manifest's `tolerances`:
