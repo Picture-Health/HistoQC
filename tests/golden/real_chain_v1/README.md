@@ -54,13 +54,29 @@ In a venv: Python 3.10, `pip install --require-hashes -r requirements-image.lock
 then pathology-slide-reader `--no-deps` at the commit in `requirements.txt`; run
 from the repo root.
 
-All five with pytest (marked `integration`). Fixtures come from
-`GOLDEN_FIXTURES_DIR` (a local copy laid out as `<dir>/<chain>/{input,golden}/`)
-or S3, and the test skips when neither is reachable:
+All five with pytest. The test is opt-in: `pyproject.toml` deselects the
+`integration` marker, so a plain `pytest` never runs it or downloads slides.
+Opt in with `-m integration` and one fixture source:
 
 ```bash
+# a local copy laid out as <dir>/<chain>/{input,golden}/
 GOLDEN_FIXTURES_DIR=~/fixtures/histoqc pytest -m integration tests/golden
+# or download from S3 (chains.S3_ROOT; needs read access to the bucket)
+GOLDEN_FIXTURES_S3=1 pytest -m integration tests/golden
 ```
+
+With no source set the test skips. With a source set, any fixture problem (a
+missing file, an S3 error such as access denied, an empty golden listing,
+boto3 not installed) fails the test, so a green run always compared all five
+slides. `tests/golden/test_fixture_sources.py` (runs by default, no slides)
+checks that rule.
+
+Where to run it: the inputs are real (de-identified) clinical slides, and
+slide data stays in AWS. Run it on an AWS-hosted linux/amd64 machine (such as
+an EC2 dev box), in the image or a venv built from the lock, not on a laptop.
+Each chain's downloads and HistoQC output go into a temp folder that is
+deleted after the chain, pass or fail (not pytest's `tmp_path`, which keeps
+the last three runs).
 
 ## Compare rule
 
@@ -75,12 +91,28 @@ From each manifest's `tolerances`:
 `compare.py` exits 0 on pass. Failing float columns print their distance in
 ULPs, so CPU rounding (1 or 2 ULP) is easy to tell from a real change.
 
-## Verified (2026-11-09, TRD-3554)
+## Verified
 
-In the image built from this Dockerfile, run as `linux/amd64` under emulation
-on an Apple Silicon Mac. The emulated CPU has SSE4.2 only (no AVX, AVX2,
-AVX-512 or FMA; OpenBLAS picks its generic kernel), while the goldens were made
-on a Xeon 8259CL with AVX-512, so numpy and OpenBLAS take different SIMD paths:
+### Native x86-64: 5/5 pass (2026-11-11, TRD-3554)
+
+The strict rule passes on hardware matching the goldens' CPU type: `pytest -m
+integration tests/golden` in the image built from this Dockerfile at `7bf07f1`
+(the head of PR #1, `chore/TRD-3554-histoqc-image-golden`), on an EC2
+g4dn.8xlarge (Intel Xeon Platinum 8259CL, AVX-512; Tesla T4, unused by
+HistoQC), fixtures from a local copy: `5 passed in 124.58s`. Every PNG
+byte-identical (19/19 per slide) and every results.tsv column exact, for all
+five chains. The comparison stays exact; no float tolerance is allowed.
+
+### Other x86 CPUs: 1 to 2 ULP float differences (2026-11-09)
+
+Other x86 CPUs, including emulated ones, are expected to fail the strict rule
+by 1 or 2 ULP in a few float columns (and, on some slides, one grey level in
+the diagnostic `_equalized_thumb.png`): numpy and OpenBLAS pick SIMD kernels by
+CPU, and those round differently. `compare.py` prints the ULP distance of each
+failing float column, so such a run can be told from a real change. Recorded
+in the image built from this Dockerfile, run as `linux/amd64` under emulation
+on an Apple Silicon Mac. The emulated CPU has SSE4.2 only (no AVX, AVX2, AVX-512 or FMA; OpenBLAS
+picks its generic kernel):
 
 | Chain | PNGs byte-identical | `mask_use.png` | results.tsv |
 |---|---|---|---|
@@ -93,9 +125,7 @@ on a Xeon 8259CL with AVX-512, so numpy and OpenBLAS take different SIMD paths:
 The two differing PNGs are `_equalized_thumb.png` (a diagnostic image nothing
 downstream reads): 6 of 698,368 pixels (CCF 54) and 13 of 1,127,168 (CCF 8)
 are one grey level off. Every integer and string column, and every count
-(`pixels_to_use` etc.), matches exactly. So the strict rule fails on this
-machine; it has not yet been run on native x86-64 with AVX-512, where the exact
-match is expected.
+(`pixels_to_use` etc.), matches exactly.
 
 ## Environment
 
@@ -121,9 +151,9 @@ Both are HistoQC's behaviour on the PH production config.
   ink halo by `coverslip_edge`, but thin light ink crossing the tissue stays
   inside `mask_use` (TRD-3518 issue 6, false negative).
 
-## When the Raven DB layer lands
+## Raven records
 
-The golden covers the file output only. Once the `path_masks` / `path_qc`
-schema and the Raven API are final, add a DB-mode golden of the rows
-`histoqc.db` writes (identity fields fixed, ids and timestamps dropped) and run
-the stage through the API.
+The golden covers the file output only. HistoQC does not write to the Raven
+database: all platform data goes through raven-api via the `raven` SDK, which
+has no pathology QC endpoint yet (TRD-2841). When it does, add a golden of the
+records sent through it.

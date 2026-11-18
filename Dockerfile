@@ -11,7 +11,9 @@
 #   GITHUB_TOKEN=$(gh auth token) docker build --platform linux/amd64 \
 #       --secret id=github_token,env=GITHUB_TOKEN -t histoqc .
 
-FROM python:3.10.20-slim AS builder
+# The base is pinned by digest (the multi-arch index of python:3.10.20-slim as
+# of 2026-11-17), so a re-pushed tag can't change the image under the goldens.
+FROM python:3.10.20-slim@sha256:63669fd2563fa90b0442fa7b568e66e3667755636cda086d7bcaaa895f66fe39 AS builder
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
     && apt-get install -y --no-install-recommends git \
@@ -29,16 +31,21 @@ RUN pip install --no-cache-dir --require-hashes --only-binary :all: \
         -r requirements-image.lock
 
 # The private reader, at the commit pinned in requirements.txt, with no
-# dependency resolution (its dependencies are in the lock). The token only
-# exists in this RUN's environment: git reads the URL rewrite from GIT_CONFIG_*
-# variables, so no config file or URL holding it is written to the layer.
+# dependency resolution (its dependencies are in the lock). pip builds it from
+# source; --no-build-isolation makes it use the hash-checked poetry-core from
+# the lock instead of fetching an unpinned one from PyPI, so nothing outside
+# the lock is downloaded while the token is present. poetry-core is removed
+# afterwards (build-only). The token only exists in this RUN's environment: git
+# reads the URL rewrite from GIT_CONFIG_* variables, so no config file or URL
+# holding it is written to the layer.
 COPY requirements.txt ./
 RUN --mount=type=secret,id=github_token,required=true \
     GIT_CONFIG_COUNT=1 \
     GIT_CONFIG_KEY_0="url.https://x-access-token:$(cat /run/secrets/github_token)@github.com/.insteadOf" \
     GIT_CONFIG_VALUE_0="https://github.com/" \
-    pip install --no-cache-dir --no-deps \
+    pip install --no-cache-dir --no-deps --no-build-isolation \
         "$(grep '^pathology-slide-reader @' requirements.txt)" \
+    && pip uninstall -y poetry-core \
     && pip check
 
 # HistoQC runs from source on PYTHONPATH, as the goldens were made (`python -m
@@ -46,7 +53,7 @@ RUN --mount=type=secret,id=github_token,required=true \
 COPY histoqc ./histoqc
 COPY tests/picture_health/config_ph_v2.1.ini ./config/config_ph_v2.1.ini
 
-FROM python:3.10.20-slim
+FROM python:3.10.20-slim@sha256:63669fd2563fa90b0442fa7b568e66e3667755636cda086d7bcaaa895f66fe39
 COPY --from=builder /opt/HistoQC /opt/HistoQC
 ENV PATH="/opt/HistoQC/venv/bin:$PATH" \
     PYTHONPATH=/opt/HistoQC \
